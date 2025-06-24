@@ -62,6 +62,7 @@ class SmartKasaService:
         page = 1
 
         while True:
+            print(f"Fetching page {page}...")
             params = {
                 'date_start': date_start,
                 'date_end': date_end,

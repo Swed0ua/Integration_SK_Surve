@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -24,7 +25,10 @@ class SyncBridge:
             LoggerService.log(main_msg="[SmartKasa] ✅ Authorization successful.")
 
             LoggerService.log(main_msg="[SmartKasa] Getting receipts...")
-            receipts = self.smartkasa.get_invoices()
+            receipts = self.smartkasa.get_invoices_all_pages()
+            
+            with open("receipts.json", "w", encoding="utf-8") as f:
+                json.dump(receipts, f, indent=4, ensure_ascii=False)
             
             # TODO: Mock data
             date_from = "2025-06-01"
@@ -48,7 +52,7 @@ class SyncBridge:
             nomenclature = self.syrve.get_nomenclature(org_id)
 
             # TODO: Delete this line in production
-            receipts = receipts[:1]
+            # receipts = receipts[:1]
 
             for idx, receipt in enumerate(receipts, 1):
                 print("="*60)
@@ -76,7 +80,7 @@ class SyncBridge:
                     syrve_product = self.syrve.find_product_by_code(nomenclature, product_code)
 
                     if not syrve_product:
-                        LoggerService.log(main_msg=f"[Syrve][!] ❌ Product with code {product_code} not found in Syrve.")
+                        LoggerService.log(main_msg=f"[Syrve][!] ❌ Product with code {product_code} not found in Syrve.", level=LOG_LEVEL_WARNING)
                         continue
 
                     items.append({
