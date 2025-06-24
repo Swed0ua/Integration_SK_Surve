@@ -71,7 +71,7 @@ class SyncBridge:
 
                     smartkasa_product = self.smartkasa.get_product_by_id(product_id)
                     if not smartkasa_product:
-                        LoggerService.log(main_msg=f"[SmartKasa][!] ❌ SmartKasa product not found: {product_id}")
+                        LoggerService.log(main_msg=f"[SmartKasa][!] ❌ SmartKasa product not found: {product_id}", level=LOG_LEVEL_WARNING)
                         continue
 
                     product_code = smartkasa_product.get("alter_number")
@@ -91,7 +91,7 @@ class SyncBridge:
                     })
 
                 if not items:
-                    LoggerService.log(main_msg=f"[SmartKasa][!] ⚠️ No products matched for the order.", level=LOG_LEVEL_WARNING)
+                    LoggerService.log(main_msg=f"[SmartKasa][!] ⚠️ No products matched for the order. {product_id}", level=LOG_LEVEL_WARNING)
                     continue
 
                 discount_amount = receipt.get('discount_amount')
@@ -118,7 +118,7 @@ class SyncBridge:
                 if transaction_type_id == 0:
                     cash_pay_id = os.getenv("SURVE_TRANSACTION_TYPE_ID_CASH")
                     payment_type_id = cash_pay_id
-                    payment_type_kind = "Cash"
+                    payment_type_kind = "Card"
                 else:
                     card_pay_id = os.getenv("SURVE_TRANSACTION_TYPE_ID_CARD")
                     payment_type_id = card_pay_id
