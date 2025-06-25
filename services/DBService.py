@@ -37,15 +37,17 @@ def init_db():
     db.create_tables([Receipt, Log], safe=True)
     db.close()
 
-def add_receipt(**kwargs):
-    Receipt.replace(**kwargs).execute()
-
+# Logs
 def add_log(level, message, receipt_id=None):
     Log.create(
         level=level,
         message=message,
         receipt_id=receipt_id
     )
+
+# Orders
+def add_receipt(**kwargs):
+    Receipt.replace(**kwargs).execute()
 
 def update_receipt_step(receipt_id, new_step):
     query = Receipt.update(step=new_step).where(Receipt.id == receipt_id)
@@ -59,3 +61,15 @@ def update_close_order_correlationId(receipt_id, correlation_id):
 
 def receipt_exists(sk_receipt_id):
     return Receipt.select().where(Receipt.sk_id == sk_receipt_id).exists()
+
+def get_receipt_by_id(receipt_id):
+    try:
+        return Receipt.get(Receipt.id == receipt_id)
+    except Receipt.DoesNotExist:
+        return None
+
+def get_receipt_by_sk_id(sk_id):
+    try:
+        return Receipt.get(Receipt.sk_id == sk_id)
+    except Receipt.DoesNotExist:
+        return None

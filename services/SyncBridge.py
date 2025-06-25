@@ -51,17 +51,15 @@ class SyncBridge:
             term_id = self.syrve.get_terminal_group_id(org_id)
             nomenclature = self.syrve.get_nomenclature(org_id)
 
-            # TODO: Delete this line in production
-            # receipts = receipts[:1]
-
             for idx, receipt in enumerate(receipts, 1):
                 print("="*60)
                 sk_receipt_id = receipt.get("id")
-                LoggerService.log(main_msg=f"[SmartKasa] ▶️ Processing receipt #{idx} | SK_ID: {sk_receipt_id} | Date: {receipt.get('created_at')}", msg_log_db=f"Receipt: {receipt}")
 
                 if receipt_exists(sk_receipt_id):
-                    LoggerService.log(main_msg=f"[DB] Receipt already exists in DB: {sk_receipt_id}")
+                    LoggerService.log(main_msg=f"[DB]  Processing receipt #{idx}, Receipt already exists in DB: {sk_receipt_id}")
                     continue
+
+                LoggerService.log(main_msg=f"[SmartKasa] ▶️ Processing receipt #{idx} | SK_ID: {sk_receipt_id} | Date: {receipt.get('created_at')}", msg_log_db=f"Receipt: {receipt}")
 
                 items = []
                 for item in receipt.get("items", []):
@@ -91,7 +89,7 @@ class SyncBridge:
                     })
 
                 if not items:
-                    LoggerService.log(main_msg=f"[SmartKasa][!] ⚠️ No products matched for the order. {product_id}", level=LOG_LEVEL_WARNING)
+                    LoggerService.log(main_msg=f"[SmartKasa][!] ⚠️ No products matched for the order. SK_ID[{sk_receipt_id}]", msg_log_db=f"Receipts: {receipt.get("items", [])}", level=LOG_LEVEL_WARNING)
                     continue
 
                 discount_amount = receipt.get('discount_amount')
@@ -130,9 +128,9 @@ class SyncBridge:
                     "sum": amount
                 }]
                 
-                LoggerService.log(main_msg=f"[SmartKasa] Discount: {discountsInfo}")
+                LoggerService.log(main_msg=f"[SmartKasa] Discount: {discountsInfo}, SK_ID[{sk_receipt_id}]")
 
-                LoggerService.log(main_msg=f"[Syrve] 📝 Creating order...")
+                LoggerService.log(main_msg=f"[Syrve] 📝 Creating order..., SK_ID[{sk_receipt_id}]")
 
                 result = self.syrve.create_order(org_id, term_id, items, discountsInfo=discountsInfo)
                 order_info = result.get("orderInfo", {})
@@ -142,7 +140,7 @@ class SyncBridge:
                     created_at=order_info.get("timestamp"), 
                     step="create_order",
                     status=order_info.get("creationStatus"),
-                    data=str(order_info.get("order", {})),
+                    data=str(order_info),
                     sk_created_at=receipt.get("created_at"),
                     sk_status=receipt.get("state"),
                     sk_id=receipt.get("id"),
@@ -154,19 +152,19 @@ class SyncBridge:
                     add_payment_correlationId=add_payment_result.get("correlationId") if 'add_payment_result' in locals() else None,
                     close_order_correlationId=close_order_result.get("correlationId") if 'close_order_result' in locals() else None
                 )
-                LoggerService.log(main_msg=f"[Syrve] ✅ Order created", msg_log_db=f"Order: {result}", receipt_id=receipt_id)
+                LoggerService.log(main_msg=f"[Syrve] ✅ Order created, SK_ID[{sk_receipt_id}]", msg_log_db=f"Order: {result}", receipt_id=receipt_id)
 
                 # Add payment
-                LoggerService.log(main_msg=f"[SmartKasa] 💳 Payment type: {payment_type_kind} (ID: {payment_type_id}), Amount: {amount}", receipt_id=receipt_id)
+                LoggerService.log(main_msg=f"[SmartKasa] 💳 Payment type, SK_ID[{sk_receipt_id}]: {payment_type_kind} (ID: {payment_type_id}), Amount: {amount}", receipt_id=receipt_id)
                 time.sleep(5)
 
                 add_payment_result = self.syrve.add_payment(org_id, result["orderInfo"]["id"], payments)
-                LoggerService.log(main_msg=f"[Syrve] ✅ Payment added to order {result['orderInfo']['id']}", msg_log_db=add_payment_result, receipt_id=receipt_id)
+                LoggerService.log(main_msg=f"[Syrve] ✅ Payment added to order, SK_ID[{sk_receipt_id}], {result['orderInfo']['id']} ", msg_log_db=add_payment_result, receipt_id=receipt_id)
                 update_receipt_step(receipt_id, "add_payment")
                 update_add_payment_correlationId(receipt_id, add_payment_result.get("correlationId"))
 
                 close_order_result = self.syrve.close_order(org_id, result["orderInfo"]["id"])
-                LoggerService.log(main_msg=f"[Syrve] ✅ Order {result['orderInfo']['id']} closed.", msg_log_db=close_order_result, receipt_id=receipt_id)
+                LoggerService.log(main_msg=f"[Syrve] ✅ Order {result['orderInfo']['id']} closed., SK_ID[{sk_receipt_id}]", msg_log_db=close_order_result, receipt_id=receipt_id)
                 print("="*60)
                 update_receipt_step(receipt_id, "close_order")
                 update_close_order_correlationId(receipt_id, close_order_result.get("correlationId"))
