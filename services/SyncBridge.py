@@ -31,7 +31,8 @@ class SyncBridge:
                 json.dump(receipts, f, indent=4, ensure_ascii=False)
             
             # TODO: Mock data
-            date_from = "2025-06-01"
+            # date_from = "2025-06-01"
+            date_from = "1970-06-01"
 
             receipts = self.smartkasa.filter_receipts_by_date(receipts, date_from=date_from, date_to=None)
 
