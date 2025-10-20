@@ -32,7 +32,7 @@ class SyncBridge:
             
             # TODO: Mock data
             # date_from = "2025-06-01"
-            date_from = "1970-06-01"
+            date_from = "2025-10-10"
 
             receipts = self.smartkasa.filter_receipts_by_date(receipts, date_from=date_from, date_to=None)
 
@@ -52,6 +52,8 @@ class SyncBridge:
             term_id = self.syrve.get_terminal_group_id(org_id)
             nomenclature = self.syrve.get_nomenclature(org_id)
 
+            LoggerService.log(main_msg=f"[Syrve] Receipts count {len(receipts)}")
+
             for idx, receipt in enumerate(receipts, 1):
                 print("="*60)
                 sk_receipt_id = receipt.get("id")
@@ -70,8 +72,9 @@ class SyncBridge:
 
                     smartkasa_product = self.smartkasa.get_product_by_id(product_id)
                     if not smartkasa_product:
-                        LoggerService.log(main_msg=f"[SmartKasa][!] ❌ SmartKasa product not found: {product_id}", level=LOG_LEVEL_WARNING)
-                        continue
+                        error_msg = f"SmartKasa product not found: {product_id}. SK_ID: {sk_receipt_id}, Item: {item}"
+                        LoggerService.log(main_msg=f"[SmartKasa][!] ❌ {error_msg}", level=LOG_LEVEL_ERROR)
+                        raise ValueError(error_msg)
 
                     product_code = smartkasa_product.get("alter_number")
                     LoggerService.log(main_msg=f"[SmartKasa] ➡️ Product: {smartkasa_product.get('alter_title')} (Code: {product_code}, Quantity: {quantity}, Price: {price})")
@@ -79,8 +82,9 @@ class SyncBridge:
                     syrve_product = self.syrve.find_product_by_code(nomenclature, product_code)
 
                     if not syrve_product:
-                        LoggerService.log(main_msg=f"[Syrve][!] ❌ Product with code {product_code} not found in Syrve.", level=LOG_LEVEL_WARNING)
-                        continue
+                        error_msg = f"Product with code {product_code} not found in Syrve. SK_ID: {sk_receipt_id}, Product: {smartkasa_product.get('alter_title')}"
+                        LoggerService.log(main_msg=f"[Syrve][!] ❌ {error_msg}", level=LOG_LEVEL_ERROR)
+                        raise ValueError(error_msg)
 
                     items.append({
                         "productId": syrve_product["id"],
